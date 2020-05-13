@@ -1,15 +1,20 @@
+import http from 'http';
 import { getConfig, projectHasModule } from '@expo/config';
 import { createDevServerMiddleware } from '@react-native-community/cli-server-api';
 import Log from '@expo/bunyan';
 import * as ExpoMetroConfig from '@expo/metro-config';
 import bodyParser from 'body-parser';
+import type Metro from 'metro';
 
 import clientLogsMiddleware from './middleware/clientLogsMiddleware';
 import LogReporter from './LogReporter';
 
 export type MetroDevServerOptions = ExpoMetroConfig.LoadOptions & { logger: Log };
 
-export async function runMetroDevServerAsync(projectRoot: string, options: MetroDevServerOptions) {
+export async function runMetroDevServerAsync(
+  projectRoot: string,
+  options: MetroDevServerOptions
+): Promise<{ server: http.Server; middleware: any }> {
   const Metro = importMetroFromProject(projectRoot);
 
   const reporter = new LogReporter(options.logger);
@@ -22,6 +27,10 @@ export async function runMetroDevServerAsync(projectRoot: string, options: Metro
   });
   middleware.use(bodyParser.json());
   middleware.use('/logs', clientLogsMiddleware(options.logger));
+  middleware.use((req: http.IncomingMessage, res: any, next: any) => {
+    console.log(req.method, req.url);
+    next();
+  });
 
   const customEnhanceMiddleware = metroConfig.server.enhanceMiddleware;
   // @ts-ignore can't mutate readonly config
@@ -43,7 +52,17 @@ export async function runMetroDevServerAsync(projectRoot: string, options: Metro
   };
 }
 
-function importMetroFromProject(projectRoot: string) {
+export async function bundleAsync(projectRoot: string, options: MetroDevServerOptions) {
+  const metro = importMetroFromProject(projectRoot);
+  const reporter = new LogReporter(options.logger);
+  const metroConfig = await ExpoMetroConfig.loadAsync(projectRoot, { reporter, ...options });
+  const serverInstance = await metro.runMetro(metroConfig, {
+    watch: false,
+  });
+  serverInstance.build({});
+}
+
+function importMetroFromProject(projectRoot: string): typeof Metro {
   const { exp } = getConfig(projectRoot, { skipSDKVersionRequirement: true });
 
   const resolvedPath = projectHasModule('metro', projectRoot, exp);

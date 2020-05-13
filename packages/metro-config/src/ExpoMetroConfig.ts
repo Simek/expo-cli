@@ -41,6 +41,7 @@ export function getDefaultConfig(
   );
 
   const target = options.target ?? process.env.EXPO_TARGET ?? getDefaultTarget(projectRoot);
+  console.log(process.env);
   if (!(target === 'managed' || target === 'bare')) {
     throw new Error(
       `Invalid target: '${target}'. Debug info: \n${JSON.stringify(
