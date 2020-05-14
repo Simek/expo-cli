@@ -5,7 +5,7 @@ require 'supply'
 require 'funcs'
 require 'json'
 
-$buildPath, $androidPackage, $key, $track, $releaseStatus = ARGV
+$buildPath, $androidPackage, $key, $track, $archiveType, $releaseStatus = ARGV
 $result = nil
 
 captured_stderr = with_captured_stderr{
@@ -15,7 +15,7 @@ captured_stderr = with_captured_stderr{
       json_key: $key,
       track: $track
     }
-    if File.extname($buildPath) == ".aab"
+    if $archiveType == "aab"
       config[:aab] = $buildPath
     else
       config[:apk] = $buildPath
